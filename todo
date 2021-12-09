@@ -1,0 +1,56 @@
+863746956179-ag8sa55jtnfsmbdepf58842qs6i22218.apps.googleusercontent.com
+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
+
+https://accounts.google.com/o/oauth2/v2/auth?scope=https%3A//www.googleapis.com/auth/drive&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=http://localhost/googleLogin.php&client_id=863746956179-ag8sa55jtnfsmbdepf58842qs6i22218.apps.googleusercontent.com&state=user_id
+https://accounts.google.com/o/oauth2/revoke?token=
+
+
+---
+
+
+    private $refresh_token = '';
+    private $access_token = '';
+    private $expires_in = '';
+    
+    public function request($url, $method = 'GET', $params = array()) {
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Authorization: Bearer ' . $this->access_token));
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
+        if (!empty($params)) {
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
+        }
+        $res = json_decode(curl_exec($ch), TRUE);
+        curl_close($ch);
+        return $res;
+    }
+
+    private function refreshToken() {
+        $params = array(
+            'client_id' => $this->client_id,
+            'client_secret' => $this->client_secret,
+            'refresh_token' => $this->refresh_token,
+            'grant_type' => 'refresh_token'
+        );
+        $res = $this->curl($this->token_url, $params);
+        return $this->writeKeys($res);
+    }
+
+    public function setTokens($auth_code) {
+        if (isset($auth_code)) {
+            $res = $this->getTokensByAuthCode($auth_code);
+            if (isset($res['error'])) {
+                return FALSE;
+            }
+            return $this->writeKeys($res);
+        } else {
+            if (!$this->readKeys()) {
+                return FALSE;
+            }
+            if ($this->expires_in < time()) {
+                return $this->refreshToken();
+            }
+        }
+        return TRUE;
+    }
